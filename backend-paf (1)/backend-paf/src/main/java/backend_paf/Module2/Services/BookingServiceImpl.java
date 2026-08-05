@@ -62,6 +62,15 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Booking conflict: resource already booked for this time slot");
         }
 
+        if (request.getStartTime() != null && request.getEndTime() != null &&
+            !request.getEndTime().isAfter(request.getStartTime())) {
+            throw new RuntimeException("End time must be after start time");
+        }
+
+        if (request.getAttendees() != null && request.getAttendees() < 1) {
+            throw new RuntimeException("Number of attendees must be at least 1");
+        }
+
         Booking booking = new Booking(
                 request.getUserId(),
                 request.getResourceId(),

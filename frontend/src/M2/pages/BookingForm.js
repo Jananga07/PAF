@@ -114,7 +114,15 @@ function BookingForm() {
     if (urlResId) setForm((p) => ({ ...p, resourceId: urlResId }));
   }, [urlResId]);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    // Clear end time if start time changes to avoid invalid selection
+    if (name === 'startTime') {
+      setForm({ ...form, startTime: value, endTime: '' });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
   const parseError   = (msg) => { try { return JSON.parse(msg).error || msg; } catch { return msg; } };
   const isConflict   = (msg) => msg?.toLowerCase().includes('conflict');
 
@@ -126,6 +134,11 @@ function BookingForm() {
     const to   = availableTo   ? parseInt(availableTo.slice(0, 2), 10)   : 24;
     return h >= from && h < to;
   });
+
+  // End time slots must be after start time
+  const endSlots = availableSlots.filter(t =>
+    !form.startTime || t.value > form.startTime
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -202,7 +215,7 @@ function BookingForm() {
                 <Field label="Booking Date" name="bookingDate" type="date" value={form.bookingDate} onChange={handleChange} min={new Date().toISOString().split('T')[0]} />
                 <div className="bf-row">
                   <TimeSelect label="Start Time" name="startTime" value={form.startTime} onChange={handleChange} bookedHours={bookedHours} slots={availableSlots} />
-                  <TimeSelect label="End Time"   name="endTime"   value={form.endTime}   onChange={handleChange} bookedHours={bookedHours} slots={availableSlots} />
+                  <TimeSelect label="End Time"   name="endTime"   value={form.endTime}   onChange={handleChange} bookedHours={bookedHours} slots={endSlots} />
                 </div>
                 {availableFrom && availableTo && (
                   <div className="bf-capacity-hint">
@@ -216,7 +229,7 @@ function BookingForm() {
               <div className="bf-section-title">📝 Booking Details</div>
               <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
                 <Field label="Purpose"             name="purpose"   value={form.purpose}   onChange={handleChange} />
-                <Field label="Number of Attendees" name="attendees" type="number" value={form.attendees} onChange={handleChange} />
+                <Field label="Number of Attendees" name="attendees" type="number" value={form.attendees} onChange={handleChange} min="1" />
                 {resourceCapacity && form.attendees && Number(form.attendees) > resourceCapacity && (
                   <div className="bf-capacity-warn">
                     ⚠ Exceeds capacity — max {resourceCapacity} people allowed
